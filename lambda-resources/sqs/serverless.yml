@@ -1,0 +1,20 @@
+service: serverless-sqs-queue
+frameworkVersion: "2"
+
+provider:
+  name: aws
+  stage: dev
+  region: 'us-east-2'
+
+resources:
+  Resources:
+    S3Queue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: "products-serverless-queue-${self:provider.stage}"
+  Outputs:
+    S3Queue:
+      Value:
+        "Ref": S3Queue
+      Export:
+        Name: products-serverless-queue-${self:provider.stage}

@@ -1,0 +1,44 @@
+service: products-sqs-dynamodb-service
+frameworkVersion: "2"
+
+custom:
+  sqs_arn: arn:aws:sqs:${opt:region, self:provider.region}:XXXXXXXX:products-serverless-queue-${self:provider.stage}
+
+provider:
+  name: aws
+  runtime: java11
+  stage: dev
+  region: 'us-east-2'
+  tracing:
+    lambda: true
+  environment:
+    PRODUCTS_TABLE_NAME:
+      "Fn::ImportValue": "products-serverless-table-${self:provider.stage}"
+    REGION: ${self:provider.region}
+  iamRoleStatements:
+    - ${file(../serverless.common.yml):lambdaPolicyXRay}
+    - Effect: Allow
+      Action:
+        - dynamodb:BatchWriteItem
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/products-serverless-table-${self:provider.stage}"
+    - Effect: Allow
+      Action:
+        - "sqs:*"
+      Resource: arn:aws:sqs:${opt:region, self:provider.region}:*:products-serverless-queue-${self:provider.stage}
+
+package:
+  artifact: 'target/products-sqs-to-dynamodb-lambda-1.0-SNAPSHOT.jar'
+
+functions:
+  processSqsMessage:
+    handler: com.products.lambda.handler.ProductsHandler
+    events:
+      - sqs:
+          arn: ${self:custom.sqs_arn}
+          batchSize: 1

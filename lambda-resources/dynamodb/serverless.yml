@@ -1,0 +1,30 @@
+service: serverless-dynamodb-table
+frameworkVersion: "2"
+
+provider:
+  name: aws
+  stage: dev
+  region: us-east-2
+
+resources:
+  Resources:
+    ProductsDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: products-serverless-table-${self:provider.stage}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+  Outputs:
+    ProductsDynamoDBTable:
+      Value:
+        "Ref": ProductsDynamoDBTable
+      Export:
+        Name: products-serverless-table-${self:provider.stage}

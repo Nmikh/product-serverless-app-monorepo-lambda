@@ -1,0 +1,40 @@
+service: products-api-s3-sqs
+frameworkVersion: "2"
+
+custom:
+  productBucket: product-bucket-logica
+
+provider:
+  name: aws
+  runtime: java11
+  stage: dev
+  region: 'us-east-2'
+  tracing:
+    lambda: true
+  environment:
+    QUEUE_URL:
+      "Fn::ImportValue": "products-serverless-queue-${self:provider.stage}"
+    REGION: ${self:provider.region}
+  iamRoleStatements:
+    - ${file(../serverless.common.yml):lambdaPolicyXRay}
+    - Effect: Allow
+      Action:
+        - "s3:GetObject"
+      Resource: "arn:aws:s3:::${self:custom.productBucket}/*"
+    - Effect: Allow
+      Action:
+        - "sqs:SendMessage"
+      Resource: arn:aws:sqs:*:*:products-serverless-queue-${self:provider.stage}
+
+package:
+  artifact: 'target/products-s3-to-sqs-lambda-1.0-SNAPSHOT.jar'
+
+functions:
+  product-s3-to-sqs:
+    handler: com.products.lambda.handler.ProductsHandler
+    events:
+      - s3:
+          bucket: ${self:custom.productBucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .json
